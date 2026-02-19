@@ -1,8 +1,10 @@
 // packages
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
+
+import connectDB from "./config/db.js";
 
 // routes
 import authRoutes from "./routes/authRoutes.js";
@@ -15,12 +17,18 @@ dotenv.config();
 
 const app = express();
 
+// Database connection
+connectDB(); 
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per window
+  message: "Too many requests, please try again later."
+});
+
 app.use(cors());
 app.use(express.json());
-
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("✅ Database connected"))
-.catch(err => console.log(err));
+app.use(limiter);
 
 app.get("/", (req, res) => {
   res.send("SafeSpace API running...");

@@ -1,35 +1,43 @@
-// packages
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 
-// Methods
 import connectDB from "./config/db.js";
 import errorHandler from "./middleware/errorHandler.js";
 
-// routes
+// Routes
 import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-
-dotenv.config();
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
 
+// Trust proxy (important for deployment)
 app.set("trust proxy", 1);
 
-// Database connection
-connectDB(); 
+// Connect database
+connectDB();
 
-// 
+// Logging
+app.use(morgan("dev"));
+
+// Security & Parsing
+app.use(cors());
+app.use(express.json());
+
+// ---------------- Rate Limiters ----------------
+
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // 20 requests per 15 min
-  message: "Too many attempts. Please try later."
+  max: 20,
+  message: "Too many requests. Please try again later."
 });
 
 const mediumLimiter = rateLimit({
@@ -37,31 +45,33 @@ const mediumLimiter = rateLimit({
   max: 100
 });
 
-const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10
-});
+// Apply limiters
+app.use("/api/auth", strictLimiter);
+app.use("/api/reports", strictLimiter);
+app.use("/api/admin", strictLimiter);
 
+app.use("/api/posts", mediumLimiter);
+app.use("/api/comments", mediumLimiter);
 
-app.use(cors());
-app.use(morgan("dev"));
-app.use(express.json());
+// ---------------- Routes ----------------
+
+app.use("/api/auth", authRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.get("/", (req, res) => {
   res.send("SafeSpace API running...");
 });
 
-// routes
-app.use("/api/auth", strictLimiter, authRoutes);
-app.use("/api/reports", strictLimiter, reportRoutes);
+// ---------------- Error Handler ----------------
 
-app.use("/api/admin", adminLimiter, adminRoutes);
-
-app.use("/api/posts", mediumLimiter, postRoutes);
-app.use("/api/comments", mediumLimiter, commentRoutes);
-
-// centralized error handler (MUST BE LAST)
 app.use(errorHandler);
 
-app.listen(5000, () => console.log("🚀 Server running on port 5000"));
+// ---------------- Start Server ----------------
 
+app.listen(5000, () => {
+  console.log("🚀 Server running on port 5000");
+});

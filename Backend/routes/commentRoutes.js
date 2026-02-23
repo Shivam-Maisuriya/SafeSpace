@@ -7,68 +7,78 @@ import { detectCrisis } from "../utils/crisisDetection.js";
 
 const router = express.Router();
 
-// Create Comment
-router.post("/", auth, async (req, res) => {
+// CREATE COMMENT
+router.post("/", auth, async (req, res, next) => {
   try {
     const { postId, content } = req.body;
 
     if (!postId || !content) {
-      return res.status(400).json({ message: "Missing fields" });
+      const error = new Error("Missing fields");
+      error.status = 400;
+      throw error;
     }
 
     if (req.user.isReadOnly) {
-      return res.status(403).json({
-        message: "Your account is in read-only mode.",
-      });
+      const error = new Error("Your account is in read-only mode.");
+      error.status = 403;
+      throw error;
     }
 
     if (containsBadWords(content)) {
-      return res.status(400).json({
-        message: "Comment contains inappropriate language.",
-      });
+      const error = new Error("Comment contains inappropriate language.");
+      error.status = 400;
+      throw error;
     }
 
     if (detectCrisis(content)) {
       return res.status(200).json({
+        success: false,
         crisis: true,
         message:
-          "If you're in crisis, please seek professional support immediately.",
+          "If you're in crisis, please seek professional support immediately."
       });
     }
 
     const comment = await Comment.create({
       postId,
       authorId: req.user._id,
-      content,
+      content
     });
 
-    res.json(comment);
+    res.status(201).json({
+      success: true,
+      comment
+    });
+
   } catch (err) {
-    res.status(500).json({ message: "Error creating comment" });
-    console.log(err)
+    next(err);
   }
 });
 
-// Get Comments for a Post
-router.get("/:postId", async (req, res) => {
+// GET COMMENTS FOR A POST
+router.get("/:postId", async (req, res, next) => {
   try {
     const comments = await Comment.find({
-      postId: req.params.postId,
+      postId: req.params.postId
     }).sort({ createdAt: 1 });
 
     const formattedComments = comments.map((comment) => {
       if (comment.isHidden) {
         return {
           ...comment._doc,
-          content: "⚠️ This comment is under review.",
+          content: "⚠️ This comment is under review."
         };
       }
       return comment;
     });
 
-    res.json(formattedComments);
+    res.json({
+      success: true,
+      comments: formattedComments
+    });
+
   } catch (err) {
-    res.status(500).json({ message: "Error fetching comments" });
+    next(err);
   }
 });
 

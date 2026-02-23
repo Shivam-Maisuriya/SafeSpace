@@ -11,124 +11,226 @@ const router = express.Router();
 // -----------------------------------------------------------------------------------------------------------------------------
 
 // Get Hidden Posts
-router.get("/posts/hidden", auth, adminOnly, async (req, res) => {
-  const posts = await Post.find({ isHidden: true }).sort({ updatedAt: -1 });
-  res.json(posts);
+router.get("/posts/hidden", auth, adminOnly, async (req, res, next) => {
+  try {
+    const posts = await Post.find({ isHidden: true }).sort({ updatedAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Restore Post
-router.put("/posts/:id/restore", auth, adminOnly, async (req, res) => {
-  const post = await Post.findByIdAndUpdate(
-    req.params.id,
-    { isHidden: false, reportCount: 0 },
-    { new: true }
-  );
+router.put("/posts/:id/restore", auth, adminOnly, async (req, res, next) => {
+  try {
+    const post = await Post.findByIdAndUpdate(
+      req.params.id,
+      { isHidden: false, reportCount: 0 },
+      { new: true }
+    );
 
-  await Report.deleteMany({ targetId: req.params.id });
+    if (!post) {
+      const error = new Error("Post not found");
+      error.status = 404;
+      throw error;
+    }
 
-  res.json({ message: "Post restored", post });
+    await Report.deleteMany({ targetId: req.params.id });
+
+    res.json({ message: "Post restored", post });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Delete Post Permanently
-router.delete("/posts/:id", auth, adminOnly, async (req, res) => {
-  await Post.findByIdAndDelete(req.params.id);
-  await Report.deleteMany({ targetId: req.params.id });
+router.delete("/posts/:id", auth, adminOnly, async (req, res, next) => {
+  try {
+    const post = await Post.findByIdAndDelete(req.params.id);
 
-  res.json({ message: "Post deleted permanently." });
+    if (!post) {
+      const error = new Error("Post not found");
+      error.status = 404;
+      throw error;
+    }
+
+    await Report.deleteMany({ targetId: req.params.id });
+
+    res.json({ message: "Post deleted permanently." });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // -----------------------------------------------------------------------------------------------------------------------------
 
 // Get Hidden Comments
-router.get("/comments/hidden", auth, adminOnly, async (req, res) => {
-  const comments = await Comment.find({ isHidden: true });
-  res.json(comments);
+router.get("/comments/hidden", auth, adminOnly, async (req, res, next) => {
+  try {
+    const comments = await Comment.find({ isHidden: true });
+    res.json(comments);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Restore Comment
-router.put("/comments/:id/restore", auth, adminOnly, async (req, res) => {
-  const comment = await Comment.findByIdAndUpdate(
-    req.params.id,
-    { isHidden: false, reportCount: 0 },
-    { new: true }
-  );
+router.put("/comments/:id/restore", auth, adminOnly, async (req, res, next) => {
+  try {
+    const comment = await Comment.findByIdAndUpdate(
+      req.params.id,
+      { isHidden: false, reportCount: 0 },
+      { new: true }
+    );
 
-  await Report.deleteMany({ targetId: req.params.id });
+    if (!comment) {
+      const error = new Error("Comment not found");
+      error.status = 404;
+      throw error;
+    }
 
-  res.json({ message: "Comment restored.", comment });
+    await Report.deleteMany({ targetId: req.params.id });
+
+    res.json({ message: "Comment restored.", comment });
+  } catch (err) {
+    next(err);
+  }
 });
 
-
 // Delete Comment Permanently
-router.delete("/comments/:id", auth, adminOnly, async (req, res) => {
-  await Comment.findByIdAndDelete(req.params.id);
-  await Report.deleteMany({ targetId: req.params.id });
+router.delete("/comments/:id", auth, adminOnly, async (req, res, next) => {
+  try {
+    const comment = await Comment.findByIdAndDelete(req.params.id);
 
-  res.json({ message: "Comment deleted permanently." });
+    if (!comment) {
+      const error = new Error("Comment not found");
+      error.status = 404;
+      throw error;
+    }
+
+    await Report.deleteMany({ targetId: req.params.id });
+
+    res.json({ message: "Comment deleted permanently." });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // -----------------------------------------------------------------------------------------------------------------------------
 
 // Ban User
-router.put("/users/:id/ban", auth, adminOnly, async (req, res) => {
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { isBanned: true },
-    { new: true }
-  );
+router.put("/users/:id/ban", auth, adminOnly, async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isBanned: true },
+      { new: true }
+    );
 
-  res.json({ message: "User banned successfully.", user });
+    if (!user) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    res.json({ message: "User banned successfully.", user });
+  } catch (err) {
+    next(err);
+  }
 });
-
 
 // Unban User
-router.put("/users/:id/unban", auth, adminOnly, async (req, res) => {
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { isBanned: false },
-    { new: true }
-  );
+router.put("/users/:id/unban", auth, adminOnly, async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isBanned: false },
+      { new: true }
+    );
 
-  res.json({ message: "User unbanned successfully.", user });
+    if (!user) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    res.json({ message: "User unbanned successfully.", user });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// temporary ban user
-router.put("/users/:id/tempban", auth, adminOnly, async (req, res) => {
-  const { days } = req.body;
+// Temporary Ban
+router.put("/users/:id/tempban", auth, adminOnly, async (req, res, next) => {
+  try {
+    const { days } = req.body;
 
-  const banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    if (!days || days <= 0) {
+      const error = new Error("Invalid number of days");
+      error.status = 400;
+      throw error;
+    }
 
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { banExpiresAt: banUntil },
-    { new: true }
-  );
+    const banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-  res.json({ message: "User temporarily banned.", user });
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { banExpiresAt: banUntil },
+      { new: true }
+    );
+
+    if (!user) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    res.json({ message: "User temporarily banned.", user });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// read only user
-router.put("/users/:id/readonly", auth, adminOnly, async (req, res) => {
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { isReadOnly: true },
-    { new: true }
-  );
+// Read Only
+router.put("/users/:id/readonly", auth, adminOnly, async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isReadOnly: true },
+      { new: true }
+    );
 
-  res.json({ message: "User set to read-only.", user });
+    if (!user) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    res.json({ message: "User set to read-only.", user });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// remove read only user
-router.put("/users/:id/remove-readonly", auth, adminOnly, async (req, res) => {
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { isReadOnly: false },
-    { new: true }
-  );
+// Remove Read Only
+router.put("/users/:id/remove-readonly", auth, adminOnly, async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isReadOnly: false },
+      { new: true }
+    );
 
-  res.json({ message: "Read-only removed.", user });
+    if (!user) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    res.json({ message: "Read-only removed.", user });
+  } catch (err) {
+    next(err);
+  }
 });
-
-
 
 export default router;

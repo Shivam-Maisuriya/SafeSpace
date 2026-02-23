@@ -8,113 +8,120 @@ import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, async (req, res, next) => {
   try {
     const { type, targetId, reason } = req.body;
 
     if (!type || !targetId || !reason) {
-      return res.status(400).json({ message: "Missing fields" });
+      const error = new Error("Missing fields");
+      error.status = 400;
+      throw error;
     }
 
     if (!["post", "comment"].includes(type)) {
-      return res.status(400).json({ message: "Invalid type" });
+      const error = new Error("Invalid type");
+      error.status = 400;
+      throw error;
     }
 
-    // Prevent duplicate reports by same user
+    // Prevent duplicate reports
     const existingReport = await Report.findOne({
       type,
       targetId,
-      reportedBy: req.user._id,
+      reportedBy: req.user._id
     });
 
     if (existingReport) {
-      return res.status(400).json({ message: "You already reported this." });
+      const error = new Error("You already reported this.");
+      error.status = 400;
+      throw error;
     }
 
     await Report.create({
       type,
       targetId,
       reportedBy: req.user._id,
-      reason,
+      reason
     });
 
-    // Increase report count
     if (type === "post") {
       const updatedPost = await Post.findByIdAndUpdate(
         targetId,
         { $inc: { reportCount: 1 } },
-        { new: true },
+        { new: true }
       );
 
-      // AUTO-HIDE POSTS AFTER 5 REPORTS
+      if (!updatedPost) {
+        const error = new Error("Post not found");
+        error.status = 404;
+        throw error;
+      }
+
+      // AUTO-HIDE AFTER 5 REPORTS
       if (updatedPost.reportCount >= 5 && !updatedPost.isHidden) {
         updatedPost.isHidden = true;
         await updatedPost.save();
 
-        // STRIKE SYSTEM
-        const author = await User.findById(updatedPost.authorId);
-
-        if (author) {
-          author.strikeCount += 1;
-
-          // If 3 strikes → 7 day temporary ban
-          if (author.strikeCount >= 3) {
-            author.banExpiresAt = new Date(
-              Date.now() + 7 * 24 * 60 * 60 * 1000,
-            );
-            author.strikeCount = 0; // reset strikes
-          }
-
-          await author.save();
-
-          // Optional notification
-          await Notification.create({
-            userId: author._id,
-            message:
-              "One of your posts violated guidelines and received a strike.",
-          });
-        }
+        await handleStrike(updatedPost.authorId, "post");
       }
+
     } else {
       const updatedComment = await Comment.findByIdAndUpdate(
         targetId,
         { $inc: { reportCount: 1 } },
-        { new: true },
+        { new: true }
       );
 
-      // AUTO-HIDE COMMENT AFTER 5 REPORTS
+      if (!updatedComment) {
+        const error = new Error("Comment not found");
+        error.status = 404;
+        throw error;
+      }
+
       if (updatedComment.reportCount >= 5 && !updatedComment.isHidden) {
         updatedComment.isHidden = true;
         await updatedComment.save();
 
-        //  STRIKE SYSTEM
-        const author = await User.findById(updatedComment.authorId);
-
-        if (author) {
-          author.strikeCount += 1;
-
-          if (author.strikeCount >= 3) {
-            author.banExpiresAt = new Date(
-              Date.now() + 7 * 24 * 60 * 60 * 1000,
-            );
-            author.strikeCount = 0;
-          }
-
-          await author.save();
-
-          await Notification.create({
-            userId: author._id,
-            message:
-              "One of your comments violated guidelines and received a strike.",
-          });
-        }
+        await handleStrike(updatedComment.authorId, "comment");
       }
     }
 
-    res.json({ message: "Reported successfully." });
+    res.json({
+      success: true,
+      message: "Reported successfully."
+    });
+
   } catch (err) {
-    res.status(500).json({ message: "Error reporting content." });
+    next(err);
   }
 });
+
+// ---------------- STRIKE SYSTEM HELPER ----------------
+
+async function handleStrike(userId, type) {
+  const author = await User.findById(userId);
+
+  if (!author) return;
+
+  author.strikeCount += 1;
+
+  // 3 strikes → 7-day ban
+  if (author.strikeCount >= 3) {
+    author.banExpiresAt = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000
+    );
+    author.strikeCount = 0;
+  }
+
+  await author.save();
+
+  await Notification.create({
+    userId: author._id,
+    message:
+      type === "post"
+        ? "One of your posts violated guidelines and received a strike."
+        : "One of your comments violated guidelines and received a strike."
+  });
+}
 
 export default router;

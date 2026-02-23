@@ -7,67 +7,80 @@ import { detectCrisis } from "../utils/crisisDetection.js";
 const router = express.Router();
 
 // CREATE POST
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, async (req, res, next) => {
   try {
     const { content, moodTag, mode } = req.body;
 
     if (!content || !moodTag || !mode) {
-      return res.status(400).json({ message: "Missing fields" });
+      const error = new Error("Missing fields");
+      error.status = 400;
+      throw error;
     }
 
     if (req.user.isReadOnly) {
-      return res.status(403).json({
-        message: "Your account is in read-only mode.",
-      });
+      const error = new Error("Your account is in read-only mode.");
+      error.status = 403;
+      throw error;
     }
 
     // Block bad words
     if (containsBadWords(content)) {
-      return res.status(400).json({
-        message: "Your message contains inappropriate language.",
-      });
+      const error = new Error("Your message contains inappropriate language.");
+      error.status = 400;
+      throw error;
     }
 
     // Crisis detection
     if (detectCrisis(content)) {
       return res.status(200).json({
+        success: false,
         crisis: true,
         message:
-          "If you're feeling overwhelmed or unsafe, please seek immediate professional help.",
+          "If you're feeling overwhelmed or unsafe, please seek immediate professional help."
       });
     }
 
     const post = await Post.create({
-      authorId: req.userId,
+      authorId: req.user._id, // ✅ FIXED
       content,
       moodTag,
-      mode,
+      mode
     });
 
-    res.json(post);
+    res.status(201).json({
+      success: true,
+      post
+    });
+
   } catch (err) {
-    res.status(500).json({ message: "Error creating post" });
+    next(err);
   }
 });
 
 // GET ALL POSTS (FEED)
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 }).limit(50);
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .limit(50);
 
     const formattedPosts = posts.map((post) => {
       if (post.isHidden) {
         return {
           ...post._doc,
-          content: "⚠️ This content is under review by moderators.",
+          content: "⚠️ This content is under review by moderators."
         };
       }
       return post;
     });
 
-    res.json(formattedPosts);
+    res.json({
+      success: true,
+      posts: formattedPosts
+    });
+
   } catch (err) {
-    res.status(500).json({ message: "Error fetching posts" });
+    next(err);
   }
 });
 

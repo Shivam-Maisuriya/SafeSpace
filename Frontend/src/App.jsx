@@ -8,7 +8,7 @@ export default function App() {
   const location = useLocation();
 
   const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("theme") === "dark"
+    localStorage.getItem("theme") === "dark",
   );
 
   useEffect(() => {
@@ -24,33 +24,59 @@ export default function App() {
   const showNavbar = location.pathname !== "/";
 
   return (
-    <div className="min-h-screen transition-colors duration-300 
-      bg-gradient-to-br from-indigo-50 via-white to-purple-100 
-      dark:from-[#0f172a] dark:via-[#111827] dark:to-[#1e293b]">
-
+    <div
+      className="
+        min-h-screen 
+        transition-colors duration-300
+        bg-[#f5f3ef] 
+        dark:bg-[#0f1115]
+      "
+    >
       {/* Navbar */}
       {showNavbar && (
         <motion.nav
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.25 }}
-          className="flex justify-between items-center px-8 py-4 
-          backdrop-blur-lg bg-white/70 dark:bg-gray-900/70 
-          shadow-md border-b border-white/20"
+          className="
+      flex justify-between items-center px-8 py-4
+      bg-white/80 dark:bg-[#14171c]/80
+      backdrop-blur-md
+      border-b border-black/5 dark:border-white/5
+    "
         >
-          <h1 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+          <h1 className="text-2xl font-semibold text-teal-600 dark:text-teal-400 tracking-tight">
             SafeSpace
           </h1>
 
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="px-4 py-2 rounded-xl 
-            bg-indigo-500 text-white 
-            hover:opacity-90 
-            transition-all duration-200"
-          >
-            {darkMode ? "Light Mode" : "Dark Mode"}
-          </button>
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="
+          text-sm font-medium
+          text-gray-600 dark:text-gray-300
+          hover:text-teal-600 dark:hover:text-teal-400
+          transition-colors
+        "
+            >
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </button>
+
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("username");
+                window.location.href = "/";
+              }}
+              className="
+          text-sm font-medium
+          text-gray-500 hover:text-red-500
+          transition-colors
+        "
+            >
+              Logout
+            </button>
+          </div>
         </motion.nav>
       )}
 

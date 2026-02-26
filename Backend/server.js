@@ -16,6 +16,7 @@ import commentRoutes from "./routes/commentRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import reactionRoutes from "./routes/reactionRoutes.js";
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use("/api/comments", mediumLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/reactions", reactionRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);

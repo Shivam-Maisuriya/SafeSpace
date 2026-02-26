@@ -20,23 +20,42 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 transition-colors duration-500">
-      <div className="bg-white dark:bg-gray-900 p-10 rounded-3xl shadow-xl w-[350px] text-center">
-        <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+    <div className="min-h-screen flex flex-col justify-between px-6 py-12">
+
+      {/* Top Section */}
+      <div className="flex-1 flex flex-col justify-center items-center text-center">
+
+        <h1 className="text-4xl sm:text-5xl font-semibold text-teal-600 dark:text-teal-400 tracking-tight">
           SafeSpace
         </h1>
 
-        <p className="mt-4 text-gray-600 dark:text-gray-400">
-          Share your thoughts anonymously.
+        <p className="mt-6 text-gray-600 dark:text-gray-400 text-base max-w-md leading-relaxed">
+          Speak freely.  
+          Share honestly.  
+          Stay anonymous.
         </p>
 
         <button
           onClick={handleLogin}
-          className="mt-6 w-full py-3 rounded-xl bg-indigo-500 text-white hover:scale-105 transition-transform duration-200"
+          className="
+            mt-10 w-full max-w-sm py-4
+            rounded-2xl
+            bg-teal-600 hover:bg-teal-700
+            dark:bg-teal-500 dark:hover:bg-teal-600
+            text-white font-medium text-lg
+            transition-colors duration-200
+          "
         >
           Enter Anonymously
         </button>
+
       </div>
+
+      {/* Bottom Section */}
+      <div className="text-center text-xs text-gray-400 dark:text-gray-500">
+        Built for comfort. Designed for honesty.
+      </div>
+
     </div>
   );
 }

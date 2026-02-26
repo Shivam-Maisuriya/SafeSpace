@@ -3,6 +3,7 @@ import Post from "../models/Post.js";
 import auth from "../middleware/auth.js";
 import { containsBadWords } from "../utils/badWords.js";
 import { detectCrisis } from "../utils/crisisDetection.js";
+import Reaction from "../models/Reaction.js";
 
 const router = express.Router();
 
@@ -58,30 +59,63 @@ router.post("/", auth, async (req, res, next) => {
 });
 
 // GET ALL POSTS (FEED)
-router.get("/", async (req, res, next) => {
+router.get("/", auth, async (req, res, next) => {
   try {
-    const posts = await Post.find()
-      .sort({ createdAt: -1 })
-      .limit(50);
+    const posts = await Post.find().sort({ createdAt: -1 }).limit(50);
+
+    const postIds = posts.map((post) => post._id);
+
+    // Aggregate reaction counts
+    const reactions = await Reaction.aggregate([
+      { $match: { postId: { $in: postIds } } },
+      {
+        $group: {
+          _id: { postId: "$postId", type: "$type" },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Get current user's reactions
+    const userReactions = await Reaction.find({
+      postId: { $in: postIds },
+      userId: req.user._id,
+    });
 
     const formattedPosts = posts.map((post) => {
-      if (post.isHidden) {
-        return {
-          ...post._doc,
-          content: "⚠️ This content is under review by moderators."
-        };
-      }
-      return post;
+      const reactionCounts = {
+        relate: 0,
+        alone: 0,
+        helpful: 0,
+        support: 0,
+      };
+
+      reactions.forEach((r) => {
+        if (r._id.postId.toString() === post._id.toString()) {
+          reactionCounts[r._id.type] = r.count;
+        }
+      });
+
+      const userReactionObj = userReactions.find(
+        (r) => r.postId.toString() === post._id.toString()
+      );
+
+      return {
+        ...post._doc,
+        reactionCounts,
+        userReaction: userReactionObj ? userReactionObj.type : null,
+      };
     });
 
     res.json({
       success: true,
-      posts: formattedPosts
+      posts: formattedPosts,
     });
 
   } catch (err) {
     next(err);
   }
 });
+
 
 export default router;

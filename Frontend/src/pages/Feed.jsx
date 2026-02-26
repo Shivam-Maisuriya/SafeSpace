@@ -27,17 +27,26 @@ export default function Feed() {
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">
-        👋 Welcome,{" "}
-        <span className="text-indigo-600 dark:text-indigo-400">{username}</span>
-      </h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Share what you're feeling today 🌿
-      </p>
+    <div className="max-w-2xl mx-auto px-4 py-10">
+
+      {/* Welcome Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+          👋 Welcome,{" "}
+          <span className="text-teal-600 dark:text-teal-400">
+            {username}
+          </span>
+        </h2>
+
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          Share what you're feeling today 🌿
+        </p>
+      </div>
 
       {loading && (
-        <p className="text-gray-500 dark:text-gray-400">Loading posts...</p>
+        <p className="text-gray-500 dark:text-gray-400">
+          Loading posts...
+        </p>
       )}
 
       {!loading && posts.length === 0 && (
@@ -46,6 +55,7 @@ export default function Feed() {
         </div>
       )}
 
+      {/* Posts */}
       <div className="space-y-6">
         {posts.map((post) => (
           <PostCard
@@ -61,10 +71,18 @@ export default function Feed() {
 
       {/* Floating Button */}
       <button
+        title="Create Post"
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 
-        rounded-full bg-indigo-500 text-white text-2xl 
-        shadow-lg hover:opacity-90 transition"
+        className="
+          fixed bottom-6 right-6
+          w-14 h-14
+          rounded-full
+          bg-teal-600 hover:bg-teal-700
+          dark:bg-teal-500 dark:hover:bg-teal-600
+          text-white text-2xl
+          shadow-lg hover:shadow-xl
+          transition-all duration-200
+        "
       >
         +
       </button>

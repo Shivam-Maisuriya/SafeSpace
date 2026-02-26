@@ -1,20 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import CreatePostModal from "../components/CreatePostModal";
-
-const emotionMap = {
-  "Feeling Lost": "😔",
-  "Relationship Pain": "💔",
-  "Anxiety / Stress": "😰",
-  "Career Confusion": "🎓",
-  "Self-Improvement": "🌱",
-  "Just Need to Vent": "🫂",
-};
+import PostCard from "../components/PostCard";
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openPostId, setOpenPostId] = useState(null);
 
   const username = localStorage.getItem("username");
 
@@ -55,36 +48,14 @@ export default function Feed() {
 
       <div className="space-y-6">
         {posts.map((post) => (
-          <div
+          <PostCard
             key={post._id}
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm 
-            p-5 border border-gray-100 dark:border-gray-800"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Anonymous
-              </span>
-
-              <span
-                className={`text-xs px-3 py-1 rounded-full font-medium
-                            ${
-                              post.mode === "vent"
-                                ? "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300"
-                                : "bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300"
-                            }`}
-              >
-                {post.mode === "vent" ? "Venting" : "Advice"}
-              </span>
-            </div>
-
-            <p className="text-gray-800 dark:text-gray-200 mb-3">
-              {post.content}
-            </p>
-
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {emotionMap[post.moodTag]} {post.moodTag}
-            </p>
-          </div>
+            post={post}
+            isOpen={openPostId === post._id}
+            onToggle={() =>
+              setOpenPostId(openPostId === post._id ? null : post._id)
+            }
+          />
         ))}
       </div>
 

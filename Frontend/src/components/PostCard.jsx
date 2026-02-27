@@ -1,6 +1,8 @@
 import { useState } from "react";
 import api from "../services/api";
 import timeAgo from "../utils/timeAgo";
+import { Flag, MessageCircle } from "lucide-react";
+import ReportModal from "./ReportModal";
 
 const reactionsList = [
   { type: "relate", emoji: "🤍", label: "I relate" },
@@ -14,10 +16,12 @@ export default function PostCard({ post, isOpen, onToggle }) {
   const [commentText, setCommentText] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
   const [reactionCounts, setReactionCounts] = useState(
-    post.reactionCounts || {}
+    post.reactionCounts || {},
   );
   const [userReaction, setUserReaction] = useState(post.userReaction);
   const [animatingReaction, setAnimatingReaction] = useState(null);
+  const [hasReported, setHasReported] = useState(post.hasReported);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const fetchComments = async () => {
     try {
@@ -36,10 +40,7 @@ export default function PostCard({ post, isOpen, onToggle }) {
   const handleReaction = async (type) => {
     try {
       setAnimatingReaction(type);
-
-      setTimeout(() => {
-        setAnimatingReaction(null);
-      }, 200);
+      setTimeout(() => setAnimatingReaction(null), 200);
 
       const res = await api.post(`/reactions/${post._id}`, { type });
 
@@ -81,23 +82,11 @@ export default function PostCard({ post, isOpen, onToggle }) {
   };
 
   return (
-    <div
-      className="
-        relative
-        bg-white dark:bg-[#1a1f25]
-        rounded-3xl
-        p-7
-        border border-gray-200 dark:border-gray-700
-        shadow-sm hover:shadow-lg
-        transition-all duration-300
-      "
-    >
+    <div className="relative bg-white dark:bg-[#1a1f25] rounded-3xl p-7 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300">
       {/* Accent Strip */}
       <div
-        className={`
-          absolute left-0 top-6 bottom-6 w-[3px] rounded-r-full
-          ${post.mode === "vent" ? "bg-amber-400" : "bg-teal-500"}
-        `}
+        className={`absolute left-0 top-6 bottom-6 w-[3px] rounded-r-full
+        ${post.mode === "vent" ? "bg-amber-400" : "bg-teal-500"}`}
       />
 
       {/* Header */}
@@ -106,17 +95,22 @@ export default function PostCard({ post, isOpen, onToggle }) {
           Anonymous · {timeAgo(post.createdAt)}
         </span>
 
-        <span
-          className={`text-xs px-3 py-1 rounded-full font-medium tracking-wide
-            ${
-              post.mode === "vent"
-                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                : "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300"
-            }
-          `}
+        <button
+          onClick={() => {
+            if (!hasReported) setShowReportModal(true);
+          }}
+          title={hasReported ? "Already reported" : "Report"}
+          disabled={hasReported}
+          className={`transition-colors
+                        ${
+                          hasReported
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                        }
+                    `}
         >
-          {post.mode === "vent" ? "Venting" : "Advice"}
-        </span>
+          <Flag size={16} strokeWidth={1.5} />
+        </button>
       </div>
 
       {/* Content */}
@@ -142,24 +136,17 @@ export default function PostCard({ post, isOpen, onToggle }) {
                 key={r.type}
                 onClick={() => handleReaction(r.type)}
                 title={r.label}
-                className={`
-                  flex items-center gap-1
-                  text-sm px-3 py-1.5
-                  rounded-full
-                  transition-all duration-200
+                className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full transition-all duration-200
                   ${
                     isActive
                       ? "bg-teal-100 text-teal-700 dark:bg-teal-800/40 dark:text-teal-300"
                       : "bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
-                  }
-                `}
+                  }`}
               >
                 <span
-                  className={`
-                    text-lg
-                    transition-transform duration-200
-                    ${isAnimating ? "scale-125" : "scale-100"}
-                  `}
+                  className={`text-lg transition-transform duration-200 ${
+                    isAnimating ? "scale-125" : "scale-100"
+                  }`}
                 >
                   {r.emoji}
                 </span>
@@ -172,20 +159,14 @@ export default function PostCard({ post, isOpen, onToggle }) {
         {/* Comment Button */}
         <button
           onClick={toggleComments}
-          className="
-            flex items-center gap-1
-            text-sm font-medium
-            text-gray-500 dark:text-gray-400
-            hover:text-teal-600 dark:hover:text-teal-400
-            transition
-          "
+          className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition"
         >
-          <span className="text-base">💬</span>
+          <MessageCircle size={16} strokeWidth={1.5} />
           <span>{isOpen ? "Hide" : "Comments"}</span>
         </button>
       </div>
 
-      {/* Comments Section */}
+      {/* Comments */}
       {isOpen && (
         <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
           {loadingComments && (
@@ -216,15 +197,7 @@ export default function PostCard({ post, isOpen, onToggle }) {
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Write a comment..."
-              className="
-                flex-1 p-2.5 rounded-xl
-                bg-gray-100 dark:bg-gray-800
-                text-gray-800 dark:text-white
-                outline-none
-                border border-gray-300 dark:border-gray-700
-                focus:border-teal-500
-                transition
-              "
+              className="flex-1 p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white outline-none border border-gray-300 dark:border-gray-700 focus:border-teal-500 transition"
             />
 
             <button
@@ -237,17 +210,19 @@ export default function PostCard({ post, isOpen, onToggle }) {
                 setCommentText("");
                 fetchComments();
               }}
-              className="
-                px-4 py-2 rounded-xl
-                bg-teal-600 hover:bg-teal-700
-                text-white
-                transition-colors duration-200
-              "
+              className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white transition-colors duration-200"
             >
               Send
             </button>
           </div>
         </div>
+      )}
+
+      {showReportModal && (
+        <ReportModal
+          postId={post._id}
+          onClose={() => setShowReportModal(false)}
+        />
       )}
     </div>
   );

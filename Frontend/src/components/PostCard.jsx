@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../services/api";
+import timeAgo from "../utils/timeAgo";
 
 const reactionsList = [
   { type: "relate", emoji: "🤍", label: "I relate" },
@@ -16,6 +17,7 @@ export default function PostCard({ post, isOpen, onToggle }) {
     post.reactionCounts || {}
   );
   const [userReaction, setUserReaction] = useState(post.userReaction);
+  const [animatingReaction, setAnimatingReaction] = useState(null);
 
   const fetchComments = async () => {
     try {
@@ -33,6 +35,12 @@ export default function PostCard({ post, isOpen, onToggle }) {
 
   const handleReaction = async (type) => {
     try {
+      setAnimatingReaction(type);
+
+      setTimeout(() => {
+        setAnimatingReaction(null);
+      }, 200);
+
       const res = await api.post(`/reactions/${post._id}`, { type });
 
       if (res.data.action === "created") {
@@ -75,20 +83,27 @@ export default function PostCard({ post, isOpen, onToggle }) {
   return (
     <div
       className="
-        group
-        bg-white dark:bg-[#1b2430]
+        relative
+        bg-white dark:bg-[#1a1f25]
         rounded-3xl
         p-7
-        border border-gray-100 dark:border-gray-700
-        shadow-sm
-        hover:shadow-md
+        border border-gray-200 dark:border-gray-700
+        shadow-sm hover:shadow-lg
         transition-all duration-300
       "
     >
+      {/* Accent Strip */}
+      <div
+        className={`
+          absolute left-0 top-6 bottom-6 w-[3px] rounded-r-full
+          ${post.mode === "vent" ? "bg-amber-400" : "bg-teal-500"}
+        `}
+      />
+
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
-        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          Anonymous
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          Anonymous · {timeAgo(post.createdAt)}
         </span>
 
         <span
@@ -97,7 +112,8 @@ export default function PostCard({ post, isOpen, onToggle }) {
               post.mode === "vent"
                 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
                 : "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300"
-            }`}
+            }
+          `}
         >
           {post.mode === "vent" ? "Venting" : "Advice"}
         </span>
@@ -114,31 +130,43 @@ export default function PostCard({ post, isOpen, onToggle }) {
       </p>
 
       {/* Interaction Row */}
-      <div className="flex justify-between items-center border-t border-gray-100 dark:border-gray-700 pt-4">
-
+      <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-4">
         {/* Reactions */}
         <div className="flex gap-3 flex-wrap">
-          {reactionsList.map((r) => (
-            <button
-              key={r.type}
-              onClick={() => handleReaction(r.type)}
-              title={r.label}
-              className={`
-                flex items-center gap-1
-                text-sm px-3 py-1.5
-                rounded-full
-                transition-all duration-200
-                ${
-                  userReaction === r.type
-                    ? "bg-teal-100 text-teal-700 dark:bg-teal-800/40 dark:text-teal-300"
-                    : "bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }
-              `}
-            >
-              <span className="text-base">{r.emoji}</span>
-              <span>{reactionCounts[r.type] || 0}</span>
-            </button>
-          ))}
+          {reactionsList.map((r) => {
+            const isActive = userReaction === r.type;
+            const isAnimating = animatingReaction === r.type;
+
+            return (
+              <button
+                key={r.type}
+                onClick={() => handleReaction(r.type)}
+                title={r.label}
+                className={`
+                  flex items-center gap-1
+                  text-sm px-3 py-1.5
+                  rounded-full
+                  transition-all duration-200
+                  ${
+                    isActive
+                      ? "bg-teal-100 text-teal-700 dark:bg-teal-800/40 dark:text-teal-300"
+                      : "bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
+                  }
+                `}
+              >
+                <span
+                  className={`
+                    text-lg
+                    transition-transform duration-200
+                    ${isAnimating ? "scale-125" : "scale-100"}
+                  `}
+                >
+                  {r.emoji}
+                </span>
+                <span>{reactionCounts[r.type] || 0}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Comment Button */}
@@ -157,10 +185,9 @@ export default function PostCard({ post, isOpen, onToggle }) {
         </button>
       </div>
 
-      {/* Comments */}
+      {/* Comments Section */}
       {isOpen && (
-        <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700">
-
+        <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
           {loadingComments && (
             <p className="text-sm text-gray-400">Loading comments...</p>
           )}
@@ -172,8 +199,11 @@ export default function PostCard({ post, isOpen, onToggle }) {
           {comments.map((comment) => (
             <div
               key={comment._id}
-              className="mb-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"
+              className="mb-3 p-3 rounded-xl bg-gray-100 dark:bg-gray-800"
             >
+              <div className="text-xs text-gray-400 mb-1">
+                Anonymous · {timeAgo(comment.createdAt)}
+              </div>
               <p className="text-sm text-gray-700 dark:text-gray-300">
                 {comment.content}
               </p>
@@ -188,10 +218,10 @@ export default function PostCard({ post, isOpen, onToggle }) {
               placeholder="Write a comment..."
               className="
                 flex-1 p-2.5 rounded-xl
-                bg-gray-50 dark:bg-gray-800
+                bg-gray-100 dark:bg-gray-800
                 text-gray-800 dark:text-white
                 outline-none
-                border border-gray-200 dark:border-gray-700
+                border border-gray-300 dark:border-gray-700
                 focus:border-teal-500
                 transition
               "

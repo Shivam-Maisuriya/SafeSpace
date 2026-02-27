@@ -28,7 +28,7 @@ export default function App() {
       className="
         min-h-screen 
         transition-colors duration-300
-        bg-[#f5f3ef] 
+        bg-[#f4f2ee] 
         dark:bg-[#0f1115]
       "
     >

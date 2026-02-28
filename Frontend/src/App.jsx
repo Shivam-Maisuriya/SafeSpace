@@ -1,11 +1,16 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Bell } from "lucide-react";
+
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
+import Notifications from "./pages/Notifications";
+import Profile from "./pages/Profile";
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("theme") === "dark",
@@ -24,55 +29,56 @@ export default function App() {
   const showNavbar = location.pathname !== "/";
 
   return (
-    <div
-      className="
-        min-h-screen 
-        transition-colors duration-300
-        bg-[#f4f2ee] 
-        dark:bg-[#0f1115]
-      "
-    >
+    <div className="min-h-screen transition-colors duration-300 bg-[#f4f2ee] dark:bg-[#0f1115]">
       {/* Navbar */}
       {showNavbar && (
         <motion.nav
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.25 }}
-          className="
-      flex justify-between items-center px-8 py-4
-      bg-white/80 dark:bg-[#14171c]/80
-      backdrop-blur-md
-      border-b border-black/5 dark:border-white/5
-    "
+          className="flex justify-between items-center px-8 py-4 bg-white/80 dark:bg-[#14171c]/80 backdrop-blur-md border-b border-black/5 dark:border-white/5"
         >
-          <h1 className="text-2xl font-semibold text-teal-600 dark:text-teal-400 tracking-tight">
+          <h1
+            onClick={() => navigate("/feed")}
+            className="cursor-pointer text-2xl font-semibold text-teal-600 dark:text-teal-400 tracking-tight"
+          >
             SafeSpace
           </h1>
 
           <div className="flex items-center gap-6">
+            {/* Notifications */}
+            <button
+              onClick={() => navigate("/notifications")}
+              className="text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition"
+              title="Notifications"
+            >
+              <Bell size={20} />
+            </button>
+
+            {/* Profie */}
+            <button
+              onClick={() => navigate("/profile")}
+              className="text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition"
+            >
+              Profile
+            </button>
+
+            {/* Dark Mode Toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="
-          text-sm font-medium
-          text-gray-600 dark:text-gray-300
-          hover:text-teal-600 dark:hover:text-teal-400
-          transition-colors
-        "
+              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
             >
               {darkMode ? "Light Mode" : "Dark Mode"}
             </button>
 
+            {/* Logout */}
             <button
               onClick={() => {
                 localStorage.removeItem("token");
                 localStorage.removeItem("username");
-                window.location.href = "/";
+                navigate("/");
               }}
-              className="
-          text-sm font-medium
-          text-gray-500 hover:text-red-500
-          transition-colors
-        "
+              className="text-sm font-medium text-gray-500 hover:text-red-500 transition-colors"
             >
               Logout
             </button>
@@ -83,6 +89,7 @@ export default function App() {
       {/* Page Transition */}
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
+          {/* login route */}
           <Route
             path="/"
             element={
@@ -96,6 +103,8 @@ export default function App() {
               </motion.div>
             }
           />
+
+          {/* Feed route */}
           <Route
             path="/feed"
             element={
@@ -106,6 +115,36 @@ export default function App() {
                 transition={{ duration: 0.2 }}
               >
                 <Feed />
+              </motion.div>
+            }
+          />
+
+          {/* 🔔 Notifications Route */}
+          <Route
+            path="/notifications"
+            element={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Notifications />
+              </motion.div>
+            }
+          />
+
+          {/* Profile route */}
+          <Route
+            path="/profile"
+            element={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Profile />
               </motion.div>
             }
           />

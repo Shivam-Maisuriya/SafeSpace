@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../services/api";
 import timeAgo from "../utils/timeAgo";
 import { Flag, MessageCircle } from "lucide-react";
@@ -11,17 +11,36 @@ const reactionsList = [
   { type: "support", emoji: "🫶", label: "Sending support" },
 ];
 
-export default function PostCard({ post, isOpen, onToggle }) {
+export default function PostCard({
+  post,
+  isOpen,
+  onToggle,
+  isOwner = false,
+  onDelete,
+  onUpdate, }) {
+
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
+
   const [reactionCounts, setReactionCounts] = useState(
     post.reactionCounts || {},
   );
   const [userReaction, setUserReaction] = useState(post.userReaction);
   const [animatingReaction, setAnimatingReaction] = useState(null);
+
   const [hasReported, setHasReported] = useState(post.hasReported);
   const [showReportModal, setShowReportModal] = useState(false);
+
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+
+  // ✅ Local comment count state (for realtime updates)
+  const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+
+  useEffect(() => {
+    setCommentCount(post.commentCount || 0);
+  }, [post.commentCount]);
 
   const fetchComments = async () => {
     try {
@@ -29,6 +48,7 @@ export default function PostCard({ post, isOpen, onToggle }) {
       const res = await api.get(`/comments/${post._id}`);
       if (res.data.success) {
         setComments(res.data.comments);
+        setCommentCount(res.data.comments.length); // sync count
       }
     } catch (err) {
       console.error(err);
@@ -81,6 +101,27 @@ export default function PostCard({ post, isOpen, onToggle }) {
     onToggle();
   };
 
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+
+    try {
+      const res = await api.post("/comments", {
+        postId: post._id,
+        content: commentText,
+      });
+
+      if (res.data.success) {
+        const newComment = res.data.comment;
+
+        setComments((prev) => [...prev, newComment]);
+        setCommentCount((prev) => prev + 1); // realtime update
+        setCommentText("");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="relative bg-white dark:bg-[#1a1f25] rounded-3xl p-7 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300">
       {/* Accent Strip */}
@@ -95,28 +136,81 @@ export default function PostCard({ post, isOpen, onToggle }) {
           Anonymous · {timeAgo(post.createdAt)}
         </span>
 
-        <button
-          onClick={() => {
-            if (!hasReported) setShowReportModal(true);
-          }}
-          title={hasReported ? "Already reported" : "Report"}
-          disabled={hasReported}
-          className={`transition-colors
-                        ${
-                          hasReported
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                        }
-                    `}
-        >
-          <Flag size={16} strokeWidth={1.5} />
-        </button>
+        {isOwner ? (
+          <div className="flex gap-3 text-sm">
+            <button
+              onClick={() => setEditing(true)}
+              className="text-gray-400 hover:text-teal-500 transition"
+            >
+              Edit
+            </button>
+
+            <button
+              onClick={async () => {
+                if (!window.confirm("Delete this post?")) return;
+
+                await api.delete(`/posts/${post._id}`);
+                window.location.reload();
+              }}
+              className="text-gray-400 hover:text-red-500 transition"
+            >
+              Delete
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              if (!hasReported) setShowReportModal(true);
+            }}
+            disabled={hasReported}
+            className={`transition-colors ${
+              hasReported
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-400 hover:text-red-500"
+            }`}
+          >
+            <Flag size={16} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
 
       {/* Content */}
-      <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-[15px] mb-4">
-        {post.content}
-      </p>
+      {editing ? (
+        <div className="mb-4">
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-700"
+            rows={4}
+          />
+
+          <div className="flex justify-end gap-3 mt-2">
+            <button
+              onClick={() => setEditing(false)}
+              className="text-sm text-gray-500"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={async () => {
+                await api.patch(`/posts/${post._id}`, {
+                  content: editContent,
+                });
+                setEditing(false);
+                window.location.reload();
+              }}
+              className="text-sm text-teal-600"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-[15px] mb-4">
+          {post.content}
+        </p>
+      )}
 
       {/* Mood */}
       <p className="text-xs text-gray-400 dark:text-gray-500 mb-6">
@@ -162,11 +256,11 @@ export default function PostCard({ post, isOpen, onToggle }) {
           className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition"
         >
           <MessageCircle size={16} strokeWidth={1.5} />
-          <span>{isOpen ? "Hide" : "Comments"}</span>
+          <span>{commentCount}</span>
         </button>
       </div>
 
-      {/* Comments */}
+      {/* Comments Section */}
       {isOpen && (
         <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
           {loadingComments && (
@@ -201,15 +295,7 @@ export default function PostCard({ post, isOpen, onToggle }) {
             />
 
             <button
-              onClick={async () => {
-                if (!commentText.trim()) return;
-                await api.post("/comments", {
-                  postId: post._id,
-                  content: commentText,
-                });
-                setCommentText("");
-                fetchComments();
-              }}
+              onClick={handleAddComment}
               className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white transition-colors duration-200"
             >
               Send

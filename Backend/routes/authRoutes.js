@@ -11,7 +11,8 @@ router.post("/anonymous", async (req, res, next) => {
   try {
     const user = await User.create({
       anonId: uuid(),
-      username: generateUsername()
+      username: generateUsername(),
+      role: "user" // default role
     });
 
     if (!process.env.JWT_SECRET) {
@@ -29,7 +30,10 @@ router.post("/anonymous", async (req, res, next) => {
     res.status(201).json({
       success: true,
       token,
-      username: user.username
+      user: {
+        username: user.username,
+        role: user.role
+      }
     });
 
   } catch (err) {

@@ -10,8 +10,11 @@ export default function Login() {
         "http://localhost:5000/api/auth/anonymous"
       );
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("username", res.data.username);
+      const { token, user } = res.data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("username", user.username);
+      localStorage.setItem("role", user.role);
 
       navigate("/feed");
     } catch (error) {

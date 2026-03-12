@@ -7,6 +7,9 @@ import Login from "./pages/Login";
 import Feed from "./pages/Feed";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
+import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 
 export default function App() {
   const location = useLocation();
@@ -148,6 +151,24 @@ export default function App() {
               </motion.div>
             }
           />
+
+          {/* Admin Route */}
+          <Route
+            path="/admin"
+            element={
+              <AdminProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <AdminDashboard />
+                </motion.div>
+              </AdminProtectedRoute>
+            }
+          />
+
         </Routes>
       </AnimatePresence>
     </div>

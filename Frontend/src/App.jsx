@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Feed from "./pages/Feed";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
@@ -16,7 +17,7 @@ export default function App() {
   const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("theme") === "dark",
+    localStorage.getItem("theme") === "dark"
   );
 
   useEffect(() => {
@@ -29,7 +30,10 @@ export default function App() {
     }
   }, [darkMode]);
 
-  const showNavbar = location.pathname !== "/";
+  // Hide navbar on login + admin login
+  const showNavbar =
+    location.pathname !== "/" &&
+    location.pathname !== "/admin/login";
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-[#f4f2ee] dark:bg-[#0f1115]">
@@ -58,7 +62,7 @@ export default function App() {
               <Bell size={20} />
             </button>
 
-            {/* Profie */}
+            {/* Profile */}
             <button
               onClick={() => navigate("/profile")}
               className="text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition"
@@ -79,6 +83,7 @@ export default function App() {
               onClick={() => {
                 localStorage.removeItem("token");
                 localStorage.removeItem("username");
+                localStorage.removeItem("role");
                 navigate("/");
               }}
               className="text-sm font-medium text-gray-500 hover:text-red-500 transition-colors"
@@ -89,10 +94,10 @@ export default function App() {
         </motion.nav>
       )}
 
-      {/* Page Transition */}
+      {/* Page Transitions */}
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* login route */}
+          {/* Login */}
           <Route
             path="/"
             element={
@@ -107,7 +112,7 @@ export default function App() {
             }
           />
 
-          {/* Feed route */}
+          {/* Feed */}
           <Route
             path="/feed"
             element={
@@ -122,7 +127,7 @@ export default function App() {
             }
           />
 
-          {/* 🔔 Notifications Route */}
+          {/* Notifications */}
           <Route
             path="/notifications"
             element={
@@ -137,7 +142,7 @@ export default function App() {
             }
           />
 
-          {/* Profile route */}
+          {/* Profile */}
           <Route
             path="/profile"
             element={
@@ -152,7 +157,22 @@ export default function App() {
             }
           />
 
-          {/* Admin Route */}
+          {/* Admin Login */}
+          <Route
+            path="/admin/login"
+            element={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <AdminLogin />
+              </motion.div>
+            }
+          />
+
+          {/* Admin Dashboard */}
           <Route
             path="/admin"
             element={
@@ -168,7 +188,6 @@ export default function App() {
               </AdminProtectedRoute>
             }
           />
-
         </Routes>
       </AnimatePresence>
     </div>

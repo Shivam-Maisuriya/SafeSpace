@@ -1,27 +1,40 @@
 import express from "express";
 import Reaction from "../models/Reaction.js";
+import Post from "../models/Post.js";
 import auth from "../middleware/auth.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
 const router = express.Router();
 
+const VALID_REACTIONS = ["relate", "alone", "helpful", "support"];
+
 /*
-  Toggle Reaction Logic
-
-  If:
-    - No existing reaction → create
-    - Same reaction → remove
-    - Different reaction → update
+========================================================
+TOGGLE REACTION
+========================================================
 */
-
-router.post("/:postId", auth, async (req, res, next) => {
-  try {
+router.post(
+  "/:postId",
+  auth,
+  asyncHandler(async (req, res) => {
     const { type } = req.body;
     const { postId } = req.params;
 
-    if (!["relate", "alone", "helpful", "support"].includes(type)) {
-      const error = new Error("Invalid reaction type");
-      error.status = 400;
-      throw error;
+    // Validate reaction type
+    if (!VALID_REACTIONS.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid reaction type",
+      });
+    }
+
+    // Validate post exists
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
     }
 
     const existingReaction = await Reaction.findOne({
@@ -29,7 +42,7 @@ router.post("/:postId", auth, async (req, res, next) => {
       userId: req.user._id,
     });
 
-    // No reaction yet → Create
+    // ➕ CREATE
     if (!existingReaction) {
       await Reaction.create({
         postId,
@@ -37,24 +50,33 @@ router.post("/:postId", auth, async (req, res, next) => {
         type,
       });
 
-      return res.json({ action: "created", type });
+      return res.json({
+        success: true,
+        action: "created",
+        type,
+      });
     }
 
-    // Same reaction → Remove
+    // ❌ REMOVE
     if (existingReaction.type === type) {
       await existingReaction.deleteOne();
-      return res.json({ action: "removed" });
+
+      return res.json({
+        success: true,
+        action: "removed",
+      });
     }
 
-    // Different reaction → Update
+    // 🔄 UPDATE
     existingReaction.type = type;
     await existingReaction.save();
 
-    res.json({ action: "updated", type });
-
-  } catch (err) {
-    next(err);
-  }
-});
+    res.json({
+      success: true,
+      action: "updated",
+      type,
+    });
+  })
+);
 
 export default router;

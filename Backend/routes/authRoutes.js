@@ -3,23 +3,25 @@ import { v4 as uuid } from "uuid";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import generateUsername from "../utils/generateUsername.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
 const router = express.Router();
 
 // Anonymous Login
-router.post("/anonymous", async (req, res, next) => {
-  try {
+router.post(
+  "/anonymous",
+  asyncHandler(async (req, res) => {
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: "JWT secret not configured",
+      });
+    }
+
     const user = await User.create({
       anonId: uuid(),
       username: generateUsername(),
-      role: "user" // default role
     });
-
-    if (!process.env.JWT_SECRET) {
-      const error = new Error("JWT secret not configured");
-      error.status = 500;
-      throw error;
-    }
 
     const token = jwt.sign(
       { userId: user._id },
@@ -31,14 +33,11 @@ router.post("/anonymous", async (req, res, next) => {
       success: true,
       token,
       user: {
+        id: user._id,
         username: user.username,
-        role: user.role
-      }
+      },
     });
-
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

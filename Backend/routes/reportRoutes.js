@@ -5,102 +5,96 @@ import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import auth from "../middleware/auth.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
 const router = express.Router();
 
-router.post("/", auth, async (req, res, next) => {
-  try {
+/*
+========================================================
+CREATE REPORT
+========================================================
+*/
+router.post(
+  "/",
+  auth,
+  asyncHandler(async (req, res) => {
     const { type, targetId, reason } = req.body;
 
     if (!type || !targetId || !reason) {
-      const error = new Error("Missing fields");
-      error.status = 400;
-      throw error;
+      return res.status(400).json({
+        success: false,
+        message: "Missing fields",
+      });
     }
 
     if (!["post", "comment"].includes(type)) {
-      const error = new Error("Invalid type");
-      error.status = 400;
-      throw error;
+      return res.status(400).json({
+        success: false,
+        message: "Invalid type",
+      });
     }
 
-    // Prevent duplicate reports
+    // 🔍 Validate target FIRST
+    let target;
+    if (type === "post") {
+      target = await Post.findById(targetId);
+    } else {
+      target = await Comment.findById(targetId);
+    }
+
+    if (!target) {
+      return res.status(404).json({
+        success: false,
+        message: `${type} not found`,
+      });
+    }
+
+    // 🚫 Prevent duplicate report
     const existingReport = await Report.findOne({
       type,
       targetId,
-      reportedBy: req.user._id
+      reportedBy: req.user._id,
     });
 
     if (existingReport) {
-      const error = new Error("You already reported this.");
-      error.status = 400;
-      throw error;
+      return res.status(400).json({
+        success: false,
+        message: "You already reported this.",
+      });
     }
 
     await Report.create({
       type,
       targetId,
       reportedBy: req.user._id,
-      reason
+      reason,
     });
 
-    if (type === "post") {
-      const updatedPost = await Post.findByIdAndUpdate(
-        targetId,
-        { $inc: { reportCount: 1 } },
-        { new: true }
-      );
+    // 📊 Increment report count
+    target.reportCount += 1;
 
-      if (!updatedPost) {
-        const error = new Error("Post not found");
-        error.status = 404;
-        throw error;
-      }
-
-      // AUTO-HIDE AFTER 5 REPORTS
-      if (updatedPost.reportCount >= 5 && !updatedPost.isHidden) {
-        updatedPost.isHidden = true;
-        await updatedPost.save();
-
-        await handleStrike(updatedPost.authorId, "post");
-      }
-
-    } else {
-      const updatedComment = await Comment.findByIdAndUpdate(
-        targetId,
-        { $inc: { reportCount: 1 } },
-        { new: true }
-      );
-
-      if (!updatedComment) {
-        const error = new Error("Comment not found");
-        error.status = 404;
-        throw error;
-      }
-
-      if (updatedComment.reportCount >= 5 && !updatedComment.isHidden) {
-        updatedComment.isHidden = true;
-        await updatedComment.save();
-
-        await handleStrike(updatedComment.authorId, "comment");
-      }
+    // 🚨 Auto-hide after 5 reports
+    if (target.reportCount >= 5 && !target.isHidden) {
+      target.isHidden = true;
+      await handleStrike(target.authorId, type);
     }
+
+    await target.save();
 
     res.json({
       success: true,
-      message: "Reported successfully."
+      message: "Reported successfully.",
     });
+  })
+);
 
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ---------------- STRIKE SYSTEM HELPER ----------------
-
+/*
+========================================================
+STRIKE SYSTEM
+========================================================
+*/
 async function handleStrike(userId, type) {
   const author = await User.findById(userId);
-
   if (!author) return;
 
   author.strikeCount += 1;
@@ -120,7 +114,7 @@ async function handleStrike(userId, type) {
     message:
       type === "post"
         ? "One of your posts violated guidelines and received a strike."
-        : "One of your comments violated guidelines and received a strike."
+        : "One of your comments violated guidelines and received a strike.",
   });
 }
 

@@ -6,10 +6,22 @@ const bannedWords = [
   "kill yourself",
   "die",
   "stupid",
-  "idiot"
+  "idiot",
 ];
 
+// Normalize text (remove symbols & spaces)
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "") // remove symbols
+    .replace(/\s+/g, ""); // remove spaces
+}
+
 export function containsBadWords(text) {
-  const lowerText = text.toLowerCase();
-  return bannedWords.some(word => lowerText.includes(word));
+  const normalizedText = normalize(text);
+
+  return bannedWords.some((word) => {
+    const normalizedWord = normalize(word);
+    return normalizedText.includes(normalizedWord);
+  });
 }

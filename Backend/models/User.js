@@ -2,13 +2,21 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    anonId: { type: String, required: true },
-    username: { type: String, required: true },
-    isBanned: { type: Boolean, default: false },
-    role: {
+    anonId: {
       type: String,
-      default: "user",
+      required: true,
     },
+
+    username: {
+      type: String,
+      required: true,
+    },
+
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+
     isReadOnly: {
       type: Boolean,
       default: false,
@@ -24,7 +32,7 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export default mongoose.model("User", userSchema);

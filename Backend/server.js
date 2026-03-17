@@ -16,27 +16,27 @@ import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import adminAuthRoutes from "./routes/adminAuthRoutes.js"; // ✅ NEW
+import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import reactionRoutes from "./routes/reactionRoutes.js";
 
 const app = express();
 
-// Trust proxy (important for deployment)
+// ---------------- TRUST PROXY ----------------
 app.set("trust proxy", 1);
 
-// Connect database
+// ---------------- CONNECT DB ----------------
 connectDB();
 
-// ---------------- Middleware ----------------
+// ---------------- GLOBAL MIDDLEWARE ----------------
+
+// Security headers
+app.use(helmet());
 
 // Logging
 app.use(morgan("dev"));
 
-// Security
-app.use(helmet());
-
-// CORS (adjust for production later)
+// CORS
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -44,19 +44,24 @@ app.use(
   })
 );
 
-// Body parser
-app.use(express.json());
+// Body parser (🔥 limit added)
+app.use(express.json({ limit: "10kb" }));
 
-// ---------------- Rate Limiters ----------------
+// ---------------- RATE LIMITERS ----------------
 
-// Strict (auth, reports, admin login)
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: "Too many requests. Please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: "Too many requests. Please try again later.",
+    });
+  },
 });
 
-// Medium (normal usage)
 const mediumLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -65,13 +70,13 @@ const mediumLimiter = rateLimit({
 // Apply limiters
 app.use("/api/auth", strictLimiter);
 app.use("/api/reports", strictLimiter);
-app.use("/api/admin/auth", strictLimiter); // ✅ admin login protection
+app.use("/api/admin/auth", strictLimiter);
 
 app.use("/api/posts", mediumLimiter);
 app.use("/api/comments", mediumLimiter);
-app.use("/api/admin", mediumLimiter); // ✅ admin dashboard usage
+app.use("/api/admin", mediumLimiter);
 
-// ---------------- Routes ----------------
+// ---------------- ROUTES ----------------
 
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
@@ -79,24 +84,25 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/reactions", reactionRoutes);
 app.use("/api/reports", reportRoutes);
 
-app.use("/api/admin/auth", adminAuthRoutes); // ✅ NEW
+app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use("/api/notifications", notificationRoutes);
 
-// Health check
+// ---------------- HEALTH CHECK ----------------
 app.get("/", (req, res) => {
   res.send("🚀 SafeSpace API running...");
 });
 
-// ---------------- Error Handler ----------------
-
+// ---------------- ERROR HANDLER ----------------
 app.use(errorHandler);
 
-// ---------------- Start Server ----------------
-
+// ---------------- START SERVER ----------------
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
+  console.log("=================================");
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 http://localhost:${PORT}`);
+  console.log("=================================");
 });

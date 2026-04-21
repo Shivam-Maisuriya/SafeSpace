@@ -3,63 +3,86 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError("Please fill all fields");
+      return;
+    }
+
     try {
-      const res = await api.post("/auth/login", {
-        username,
+      setLoading(true);
+      setError("");
+
+      const res = await api.post("/admin/auth/login", {
+        email,
         password,
       });
 
-      if (res.data.success) {
-        const { token, user } = res.data;
+      // ✅ Save admin token
+      localStorage.setItem("adminToken", res.data.token);
 
-        if (user.role !== "admin" && user.role !== "superadmin") {
-          alert("You are not authorized as admin.");
-          return;
-        }
+      // ✅ Redirect to dashboard
+      navigate("/admin");
 
-        localStorage.setItem("token", token);
-        localStorage.setItem("username", user.username);
-        localStorage.setItem("role", user.role);
-
-        navigate("/admin");
-      }
     } catch (err) {
-      alert("Login failed");
+      console.error(err);
+      setError(
+        err.response?.data?.message || "Invalid credentials"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-[#0f1115]">
-      <div className="bg-white dark:bg-[#1a1f25] p-8 rounded-xl shadow-lg w-96 border border-gray-200 dark:border-gray-800">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-[#f4f2ee] dark:bg-[#0f1115]">
+
+      <div className="w-full max-w-md bg-white dark:bg-[#1a1f25] p-8 rounded-2xl shadow-lg">
+
+        <h2 className="text-2xl font-semibold text-center text-teal-600 dark:text-teal-400 mb-6">
           Admin Login
         </h2>
 
+        {/* Error */}
+        {error && (
+          <p className="text-red-500 text-sm mb-4 text-center">
+            {error}
+          </p>
+        )}
+
+        {/* Email */}
         <input
-          placeholder="Username"
-          className="w-full mb-4 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          type="email"
+          placeholder="Admin Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full mb-4 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white outline-none border border-gray-300 dark:border-gray-700"
         />
 
+        {/* Password */}
         <input
           type="password"
           placeholder="Password"
-          className="w-full mb-4 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className="w-full mb-6 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white outline-none border border-gray-300 dark:border-gray-700"
         />
 
+        {/* Button */}
         <button
           onClick={handleLogin}
-          className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg transition"
+          disabled={loading}
+          className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-medium transition"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
       </div>
     </div>

@@ -10,6 +10,8 @@ import Profile from "./pages/Profile";
 
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
+
+import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 
 export default function App() {
@@ -30,15 +32,16 @@ export default function App() {
     }
   }, [darkMode]);
 
-  // Hide navbar on login + admin login
-  const showNavbar =
-    location.pathname !== "/" &&
-    location.pathname !== "/admin/login";
+  // ✅ Better navbar logic
+  const hideNavbar =
+    location.pathname === "/" ||
+    location.pathname.startsWith("/admin");
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-[#f4f2ee] dark:bg-[#0f1115]">
+
       {/* Navbar */}
-      {showNavbar && (
+      {!hideNavbar && (
         <motion.nav
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -53,11 +56,11 @@ export default function App() {
           </h1>
 
           <div className="flex items-center gap-6">
+
             {/* Notifications */}
             <button
               onClick={() => navigate("/notifications")}
               className="text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 transition"
-              title="Notifications"
             >
               <Bell size={20} />
             </button>
@@ -70,12 +73,12 @@ export default function App() {
               Profile
             </button>
 
-            {/* Dark Mode Toggle */}
+            {/* Dark Mode */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+              className="text-sm text-gray-600 dark:text-gray-300"
             >
-              {darkMode ? "Light Mode" : "Dark Mode"}
+              {darkMode ? "Light" : "Dark"}
             </button>
 
             {/* Logout */}
@@ -83,111 +86,63 @@ export default function App() {
               onClick={() => {
                 localStorage.removeItem("token");
                 localStorage.removeItem("username");
-                localStorage.removeItem("role");
                 navigate("/");
               }}
-              className="text-sm font-medium text-gray-500 hover:text-red-500 transition-colors"
+              className="text-sm text-gray-500 hover:text-red-500"
             >
               Logout
             </button>
+
           </div>
         </motion.nav>
       )}
 
-      {/* Page Transitions */}
+      {/* Routes */}
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* Login */}
-          <Route
-            path="/"
-            element={
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Login />
-              </motion.div>
-            }
-          />
 
-          {/* Feed */}
+          {/* PUBLIC */}
+          <Route path="/" element={<Login />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+
+          {/* USER PROTECTED */}
           <Route
             path="/feed"
             element={
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              <ProtectedRoute>
                 <Feed />
-              </motion.div>
+              </ProtectedRoute>
             }
           />
 
-          {/* Notifications */}
           <Route
             path="/notifications"
             element={
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              <ProtectedRoute>
                 <Notifications />
-              </motion.div>
+              </ProtectedRoute>
             }
           />
 
-          {/* Profile */}
           <Route
             path="/profile"
             element={
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              <ProtectedRoute>
                 <Profile />
-              </motion.div>
+              </ProtectedRoute>
             }
           />
 
-          {/* Admin Login */}
-          <Route
-            path="/admin/login"
-            element={
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <AdminLogin />
-              </motion.div>
-            }
-          />
-
-          {/* Admin Dashboard */}
+          {/* ADMIN PROTECTED */}
           <Route
             path="/admin"
             element={
               <AdminProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <AdminDashboard />
-                </motion.div>
+                <AdminDashboard />
               </AdminProtectedRoute>
             }
           />
+
         </Routes>
       </AnimatePresence>
     </div>

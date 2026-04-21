@@ -1,85 +1,46 @@
-import { useEffect, useState } from "react";
-import api from "../../services/api";
-import timeAgo from "../../utils/timeAgo";
+export default function ReportsTable({ reports, refresh }) {
+  const handleDeletePost = async (id) => {
+    await fetch(`/api/admin/posts/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+      },
+    });
 
-export default function ReportsTable() {
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchReports();
-  }, []);
-
-  const fetchReports = async () => {
-    try {
-      const res = await api.get("/admin/reports");
-      if (res.data.success) {
-        setReports(res.data.reports);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    refresh();
   };
 
   return (
-    <div className="bg-white dark:bg-[#1a1f25] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-          Reports Queue
-        </h2>
+    <div className="bg-white dark:bg-[#1a1f25] rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4">
+      <h2 className="text-lg font-medium mb-4 text-gray-800 dark:text-white">
+        Reports
+      </h2>
+
+      <div className="space-y-3">
+        {reports.map((r) => (
+          <div
+            key={r._id}
+            className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 flex justify-between items-center"
+          >
+            <div>
+              
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {r.reason}
+              </p>
+              <p className="text-xs text-gray-400">
+                {r.type}
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleDeletePost(r.targetId)}
+              className="text-xs bg-red-500 text-white px-3 py-1 rounded"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
       </div>
-
-      {loading && (
-        <div className="p-6 text-gray-500 dark:text-gray-400">
-          Loading reports...
-        </div>
-      )}
-
-      {!loading && reports.length === 0 && (
-        <div className="p-6 text-gray-500 dark:text-gray-400">
-          No reports yet.
-        </div>
-      )}
-
-      {!loading && reports.length > 0 && (
-        <table className="w-full text-sm">
-          <thead className="text-left border-b border-gray-200 dark:border-gray-800">
-            <tr className="text-gray-500 dark:text-gray-400">
-              <th className="p-4">Type</th>
-              <th className="p-4">Reason</th>
-              <th className="p-4">Reported By</th>
-              <th className="p-4">Time</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {reports.map((report) => (
-              <tr
-                key={report._id}
-                className="border-b border-gray-100 dark:border-gray-800"
-              >
-                <td className="p-4 text-gray-700 dark:text-gray-300">
-                  {report.type}
-                </td>
-
-                <td className="p-4 text-gray-700 dark:text-gray-300">
-                  {report.reason}
-                </td>
-
-                <td className="p-4 text-gray-700 dark:text-gray-300">
-                  {report.reportedBy?.username || "Unknown"}
-                </td>
-
-                <td className="p-4 text-gray-500 dark:text-gray-400">
-                  {timeAgo(report.createdAt)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
     </div>
   );
 }

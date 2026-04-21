@@ -1,24 +1,33 @@
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useEffect } from "react";
+import api from "../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
 
+  // ✅ Auto redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/feed");
+    }
+  }, [navigate]);
+
   const handleLogin = async () => {
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/anonymous"
-      );
+      const res = await api.post("/auth/anonymous");
 
       const { token, user } = res.data;
 
+      // ✅ Store session
       localStorage.setItem("token", token);
       localStorage.setItem("username", user.username);
-      localStorage.setItem("role", user.role);
 
+      // ✅ Redirect
       navigate("/feed");
+
     } catch (error) {
-      console.error(error);
+      console.error("Login failed:", error.response?.data || error.message);
     }
   };
 
